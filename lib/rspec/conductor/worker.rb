@@ -18,7 +18,7 @@ module RSpec
         setup_load_path
         require_postfork_preloads
 
-        loop do
+        until @shutdown_requested
           debug "Waiting for message"
           message = @message_queue.shift || @socket.receive_message
 
@@ -101,7 +101,15 @@ module RSpec
         end
 
         debug "RSpec initialized, running before(:suite) hooks"
+        # RSpec rescues a before(:suite) error and only flags it on the world, which the reporter
+        # reaches through configuration.world; that stays a null object until RSpec.world is first built
+        world = RSpec.world
         RSpec.configuration.__run_before_suite_hooks
+        return unless world.non_example_failure
+
+        debug "before(:suite) hook failed, not running any specs"
+        @socket.send_message(type: :before_suite_failed)
+        @shutdown_requested = true
       end
 
       def run_spec(file)

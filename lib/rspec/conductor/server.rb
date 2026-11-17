@@ -175,6 +175,12 @@ module RSpec
         debug "Worker #{worker_process.number}: #{message[:type]}"
 
         case message[:type].to_sym
+        when :before_suite_failed
+          # reap_workers already counted the crash if the worker's exit was seen before this message
+          if worker_process.running?
+            @suite_run.worker_crashed
+            cleanup_worker_process(worker_process, status: :terminated)
+          end
         when :example_passed
           @suite_run.example_passed(message)
         when :example_failed
