@@ -157,7 +157,9 @@ module RSpec
           @socket.send_message(
             type: :spec_error,
             file: file,
-            error: e.message,
+            description: "error in #{file}",
+            location: file,
+            message: "#{e.class}: #{e.message}",
             backtrace: e.backtrace
           )
         end

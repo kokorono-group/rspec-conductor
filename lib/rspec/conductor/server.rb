@@ -202,7 +202,7 @@ module RSpec
           assign_work(worker_process)
         when :spec_error
           @suite_run.spec_file_error(message)
-          debug "Spec error details: #{message[:error]}"
+          debug "Spec error details: #{message[:message]}"
           worker_process.current_spec = nil
           assign_work(worker_process)
         end

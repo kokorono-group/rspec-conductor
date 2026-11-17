@@ -178,6 +178,13 @@ describe "rspec-conductor executable" do
       expect_output: ["Slowest 10 specs", "test --print-slowest works", "a_spec.rb:2", "test --print-slowest fails", "a_spec.rb:3", "1 passed, 1 failed, 1 pending"]
     },
     {
+      name: "error while loading a spec file",
+      specs: { "boom_spec.rb" => 'raise "boom"' },
+      args: ["-w", "1"],
+      expect_exit: 1,
+      expect_output: [%r{1\) error in \S*/boom_spec\.rb}, "RuntimeError: boom", %r{rspec \S*/boom_spec\.rb}]
+    },
+    {
       name: "--example-status-persistence",
       specs: {
         "a_spec.rb" => "RSpec.describe('test --print-slowest') {\n it('works') { expect(true).to be(true) }\n }",
