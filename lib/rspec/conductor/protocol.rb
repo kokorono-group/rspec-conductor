@@ -13,7 +13,7 @@ module RSpec
         end
 
         def send_message(message)
-          json = JSON.generate(message)
+          json = JSON.generate(utf8(message))
           length = [json.bytesize].pack("N")
           io.write(length)
           io.write(json.b)
@@ -37,6 +37,19 @@ module RSpec
 
         def close
           io.close unless io.closed?
+        end
+
+        private
+
+        # json refuses ASCII-8BIT strings with non-ASCII bytes (e.g. names read from a zip or a socket)
+        def utf8(value)
+          case value
+          when Hash then value.transform_values { |v| utf8(v) }
+          when Array then value.map { |v| utf8(v) }
+          when String
+            value.encoding == Encoding::BINARY ? value.dup.force_encoding(Encoding::UTF_8).scrub : value
+          else value
+          end
         end
       end
     end
