@@ -62,6 +62,13 @@ describe RSpec::Conductor::Protocol::Socket do
 
       expect(message).to eq({ emoji: "🎉", text: "日本語" })
     end
+
+    it "handles binary (ASCII-8BIT) strings with non-ASCII bytes" do
+      client_socket.send_message({ description: "lists r\xC3\xA9sum\xC3\xA9.txt".b, tags: ["\xFF".b] })
+      message = server_socket.receive_message
+
+      expect(message).to eq({ description: "lists résumé.txt", tags: ["�"] })
+    end
   end
 
   describe "#close" do
