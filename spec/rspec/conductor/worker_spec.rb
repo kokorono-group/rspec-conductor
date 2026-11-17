@@ -32,6 +32,7 @@ describe RSpec::Conductor::Worker do
   def run_worker_in_fork
     pid = fork do
       server_io.close
+      yield if block_given?
       RSpec::Conductor::Worker.new(
         worker_number: 1,
         socket: client_socket,
@@ -108,6 +109,33 @@ describe RSpec::Conductor::Worker do
           file: spec_file.path,
           exception_class: "RSpec::Expectations::ExpectationNotMetError"
         ),
+        hash_including(type: "spec_complete", file: spec_file.path)
+      ])
+    end
+  end
+
+  context "with Encoding.default_internal set and a spec writing binary output" do
+    let(:spec_content) do
+      <<~RUBY
+        RSpec.describe "Binary" do
+          it "writes" do
+            RSpec.configuration.output_stream.write("r\\xC3\\xA9sum\\xC3\\xA9".b)
+          end
+        end
+      RUBY
+    end
+
+    it "reports the example as passed" do
+      pid = run_worker_in_fork { Encoding.default_internal = Encoding::UTF_8 }
+
+      server_socket.send_message(type: :worker_assigned_spec, file: spec_file.path)
+      server_socket.send_message(type: :shutdown)
+
+      messages = collect_messages
+      wait_for_worker(pid)
+
+      expect(messages).to match([
+        hash_including(type: "example_passed", description: "Binary writes", file: spec_file.path),
         hash_including(type: "spec_complete", file: spec_file.path)
       ])
     end
